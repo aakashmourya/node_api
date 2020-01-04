@@ -1,0 +1,243 @@
+var express = require('express');
+var router = express.Router();
+var database = require('../config/db')
+var User = require('../models/user')
+var SCodes = require('../helper/success-codes')
+var ErrCodes = require('../helper/error-codes')
+var resp = require("../helper/response.helper")
+var validate = require('../helper/validate.helper')
+var dbHelper = require('../helper/db.helper')
+const date = require('date-and-time');
+const Joi = require('@hapi/joi');
+/* GET users listing. */
+// router.get('/', function (req, res, next) {
+//   var m = ErrCodes.getMessage(100);
+//   res.send(m);
+// });
+
+function f() {
+
+  let promise = new Promise((resolve, reject) => {
+    // if(false)
+    setTimeout(() => resolve(["done!"]), 1000)
+
+    setTimeout(() => reject(["reject!"]), 5000)
+
+  });
+
+  // promise; // wait till the promise resolves (*)
+  return promise;
+  // "done!"
+}
+/* GET users listing. */
+router.get('/test', async function (req, res, next) {
+  // var m=ErrCodes.getMessage(100);
+  var s = await f().catch((ss) => {
+    console.log(ss)
+  });
+  console.log(s)
+  console.log(2)
+  res.json("aa");
+
+
+});
+router.get('/pay', function (req, res, next) {
+  var source = {
+    "mobile": "2",
+    "name": "s"
+  }
+
+  var target = {
+    "mobile": "",
+  }
+  var result = payloadCheck.validator(source, target, ["mobile"], false);
+  console.log(result);
+  res.json(result);
+
+});
+
+router.get('/reg', function (req, res, next) {
+  var now = new Date();
+
+  console.log(date.format(now, 'YYYY-MM-DD HH:mm:ss'));
+  res.json(date.format(now, 'YYYY-MM-DD HH:mm:ss'));
+
+});
+
+router.post('/signup', signUp);
+router.post('/verify_otp', verify_otp);
+router.post('/register', register);
+router.post('/get_detail', get_detail);
+
+function signUp(req, res, next) {
+
+  if (req.body.mobile) {
+    if (!validate.PhoneNumber(req.body.mobile)) {
+      res.json(resp.createResponse(ErrCodes.getMessage(103), false));
+      // return;
+    } else {
+
+      database.select('users', 'mobile_no=?', [req.body.mobile]).then(function (result) {
+        var new_user = false;
+        if (result.length) {
+          new_user = false;
+        }
+        else {
+          new_user = true;
+        }
+        database.deleterow('users_otp', "mobile_no=?", [req.body.mobile]).then(function (result) {
+          database.insert('users_otp', [[req.body.mobile, '1234', date.format(new Date(), 'YYYY-MM-DD HH:mm:ss')]]).then(function (result) {
+            var response_result = {
+              new_user
+            }
+            res.json(resp.createResponse(response_result, true, "result"));
+          }).catch(function (error) {
+            res.json(error);
+          });
+        }).catch(function (error) {
+          res.json(error);
+        });
+      }).catch(function (error) {
+        res.json(error);
+      });
+    }
+    //  res.json(resp.createResponse(req.body));
+    // return;
+  } else {
+    res.json(resp.createResponse(ErrCodes.getMessage(104), false));
+  }
+
+}
+
+function verify_otp(req, res, next) {
+  if (req.body.mobile && req.body.otp) {
+    if (!validate.PhoneNumber(req.body.mobile)) {
+      res.json(resp.createResponse(ErrCodes.getMessage(103), false));
+      return;
+    }
+
+    database.select('users_otp', 'mobile_no=?', [req.body.mobile]).then(function (result) {
+      if (result.length) {
+        var otp = result[0].otp;
+        var otp_verify = false;
+        if (otp == req.body.otp) {
+          otp_verify = true;
+        }
+
+        var response_result = {
+          otp_verify,
+          mobile: req.body.mobile
+        }
+        res.json(resp.createResponse(response_result, true, "result"));
+
+
+      } else {
+        res.json(resp.createResponse(ErrCodes.getMessage(108), false));
+      }
+
+    }).catch(function (error) {
+      res.json(error);
+    });
+
+
+    return;
+  }
+  res.json(resp.createResponse(ErrCodes.getMessage(104), false));
+
+}
+
+function register(req, res, next) {
+
+
+  if (req.body.mobile !== undefined && req.body.name !== undefined && req.body.email !== undefined && req.body.gender !== undefined && req.body.ref_code !== undefined && req.body.address !== undefined && req.body.city !== undefined && req.body.state !== undefined) {
+    if (!validate.PhoneNumber(req.body.mobile)) {
+      res.json(resp.createResponse(ErrCodes.getMessage(103), false));
+      return;
+    }
+    if (!validate.Name(req.body.name)) {
+      res.json(resp.createResponse(ErrCodes.getMessage(100), false));
+      return;
+    }
+    if (!validate.Email(req.body.email)) {
+      res.json(resp.createResponse(ErrCodes.getMessage(101), false));
+      return;
+    }
+
+
+    database.insert('users', [[req.body.mobile, req.body.name, req.body.email, req.body.gender, req.body.ref_code, req.body.address, req.body.city, req.body.state, date.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), "user"]], "mobile_no,name,email,gender,ref_code,address,city,state,regdate,role").then(function (result) {
+      if (result.affectedRows) {
+        res.json(resp.createResponse({ registered: true }, true, "result"));
+      } else {
+        res.json(resp.createResponse(ErrCodes.getMessage(106), false));
+      }
+
+
+
+    }).catch(function (error) {
+      res.json(error);
+    });
+
+    //res.json(resp.createResponse(req.body));
+    return;
+  }
+  res.json(resp.createResponse(ErrCodes.getMessage(104), false));
+}
+function get_detail(req, res, next) {
+
+  if (req.body.mobile !== undefined) {
+    if (!validate.PhoneNumber(req.body.mobile)) {
+      res.json(resp.createResponse(ErrCodes.getMessage(103), false));
+      return;
+    }
+
+    database.select('users', 'mobile_no=?', [req.body.mobile]).then(function (result) {
+      if (result.length) {
+        res.json(resp.createResponse(result[0], true, "result"));
+      } else {
+        res.json(resp.createResponse(ErrCodes.getMessage(108), false));
+      }
+
+    }).catch(function (error) {
+      res.json(error);
+    });
+
+    //res.json(resp.createResponse(req.body));
+    return;
+  }
+  res.json(resp.createResponse(ErrCodes.getMessage(104), false));
+}
+
+
+router.post('/login', login);
+function login(req, res, next) {
+  const schema = Joi.object({
+    password: Joi.string()
+      .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')),
+    email: Joi.string()
+      .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required()
+  })
+ 
+  
+    //let result = schema.validate(req.body);
+    //res.status(200).json(resp.createResponse(result));
+    dbHelper.select('users').then(function (result) {
+      if (result.length) {
+        res.status(200).json(resp.createResponse(result, true, "result"));
+      } else {
+        res.status(200).json(resp.createResponse(ErrCodes.getMessage(108), false));
+      }
+
+    }).catch(function (error) {
+      res.status(500).json({error:{message:error.message}});
+    });
+
+
+
+   // res.status(200).json(resp.createResponse(result));
+ 
+
+
+}
+
+
+module.exports = router;
