@@ -1,9 +1,9 @@
-function createResponse(message="",success=true,key="message"){
+function createResponse(message="",success=true,key="result"){
     return {success,[key]:message}
 }
 
-function createError(error){
-    return {error:{message:error.message}}
+function createError(error,code=500){
+    return {error:{code,message:error.message}}
 }
 function createJoiError(error){
     return {error:{message:error.details[0].message}}

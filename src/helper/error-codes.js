@@ -1,6 +1,6 @@
 module.exports = class ErrorCodes {
     static getMessage(code) {
-        return CODE_RES[code];
+        return {'code':code,'message':CODE_RES[code]};
     }
 }
 
@@ -14,5 +14,5 @@ const CODE_RES =
     106: 'ERROR106: Internal Problem Please Contact Admin.',
     107: 'Warning232: invalid start date.',
     108:'Info108: Information not available.',
-    109:'Info109: Invalid email and password.',
+    109:'Invalid email and password',
 }

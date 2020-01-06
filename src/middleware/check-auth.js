@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-
+var resp = require("../helper/response.helper")
 module.exports = (req, res, next) => {
     try {
         const token = req.headers.authorization.split(" ")[1];
@@ -9,11 +9,6 @@ module.exports = (req, res, next) => {
         next();
     }
     catch (error) {
-        return res.status(401).json(
-            {
-                error: {
-                    message: 'Auth failed'
-                }
-            });
+        return res.status(401).json(resp.createError(new Error('Auth failed'),401));
     }
 }

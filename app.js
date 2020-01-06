@@ -3,7 +3,7 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-
+var resp = require("./src/helper/response.helper")
 //var indexRouter = require('./routes/index');
 var usersRouter = require('./src/routes/users');
 
@@ -48,11 +48,8 @@ app.use(function(req, res, next) {
 app.use(function(error, req, res, next) {
 
 res.status(error.status || 500);
-res.json({
-  error:{
-    message:error.message
-  }
-})
+console.log(resp.createError(error.message));
+res.json(resp.createError(error,error.status || 500));
 
   // set locals, only providing error in development
  // res.locals.message = error.message;
