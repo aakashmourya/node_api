@@ -22,7 +22,7 @@ exports.login = (req, res, next) => {
   let result = schema.validate(req.body);
 
   if (result.error) {
-    res.status(400).json(resp.createJoiError(result.error));
+    res.status(400).json(resp.createResponse(resp.createError(result.error, 400, true), false));
   } else {
     let { email, password } = req.body;
     dbHelper.select('users', "email=? and password=?", [email, password]).then(function (result) {
@@ -35,57 +35,73 @@ exports.login = (req, res, next) => {
               parent_id: result[0].parent_id,
               email: result[0].email
             }
-            //console.log(tokenPayload);
-            const token = jwt.sign(tokenPayload, process.env.JWT_KEY, { expiresIn: "1h" })
 
+            const token = jwt.sign(tokenPayload, process.env.JWT_KEY, { expiresIn: "1h" })
             res.status(200).json(resp.createResponse({ user: result[0], token }));
 
-            //console.log(result[0])
-            // res.status(200).json(resp.createResponse(result, true, "result"));
-
           } else {
-            res.status(200).json(resp.createResponse(ErrCodes.getMessage(109), false));
+            res.status(200).json(resp.createResponse(ErrCodes.getMessage(1090), false));
           }
 
         }).catch(function (error) {
-          res.status(500).json(resp.createError(error),500);
+          res.status(500).json(resp.createError(error), 500);
         });
 
       } else {
-        res.status(200).json(resp.createResponse(ErrCodes.getMessage(109), false));
+        res.status(200).json(resp.createResponse(ErrCodes.getMessage(1090), false));
       }
 
     }).catch(function (error) {
-      res.status(500).json(resp.createError(error),500);
+      res.status(500).json(resp.createError(error), 500);
     });
   }
 }
 
 exports.getUserDetails = (req, res, next) => {
-  // const schema = Joi.object({
-  //   password: Joi.string()
-  //     .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
-  //   email: Joi.string()
-  //     .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required(),
-  // })
+  User.getDetail(req.userData.user_id).then(function (result) {
+    if (result.length) {
+      res.status(200).json(resp.createResponse(result[0]));
+    } else {
+      res.status(200).json(resp.createResponse({}));
+    }
+  }).catch(function (error) {
+    res.status(500).json(resp.createError(error), 500);
+  });
+}
 
- // let result = schema.validate(req.body);
+exports.getUserTypes = (req, res, next) => {
+  dbHelper.select('user_types').then(function (result) {
+    if (result.length) {
+      res.status(200).json(resp.createResponse(result));
+    } else {
+      res.status(200).json(resp.createResponse({}));
+    }
+  }).catch(function (error) {
+    res.status(500).json(resp.createError(error), 500);
+  });
+}
 
- // if (result.error) {
-  //  res.status(400).json(resp.createJoiError(result.error));
- // } else {
-  //  let { email, password } = req.body;
+exports.addUser = (req, res, next) => {
   
-    User.getDetail(req.userData.user_id).then(function (result) {
-     // console.log(result[0])
-     if (result.length) {
-      res.status(200).json(resp.createResponse(result[0], true, "result"));
-     }else{
-      res.status(200).json(resp.createResponse({}, true, "result"));
-     }
-    }).catch(function (error) {
-      res.status(500).json(resp.createError(error),500);
-    });
+  const schema = Joi.object({
+    email: Joi.string()
+      .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required(),
+    password: Joi.string()
+      .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
+    parent_id: Joi.string().required(),
+    name: Joi.string().required(),
+    company_name: Joi.string().required(),
+    mobile: Joi.string().required(),
+    gst: Joi.string().required(),
+    reg_type: Joi.string().required(),
+  })
 
-  //}
+  let result = schema.validate(req.body);
+
+  if (result.error) {
+    res.status(400).json(resp.createResponse(resp.createError(result.error, 400, true), false));
+  } else {
+    res.status(200).json(resp.createResponse(req.body, true));
+   
+  }
 }
