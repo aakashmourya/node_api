@@ -6,9 +6,10 @@ module.exports = class ErrorCodes {
 
 const CODE_RES =
 {
-    1000: 'Enter Name (only alphabets).',
-    1010: 'Enter valid email address.',
-    1030: 'Enter valid 10 digit mobile number (atleast 10 digits).',
+    1000: 'Email id already exists.',
+    1010: 'Company name already exists.',
+    1020: 'Agent added successfully.',
+    1030: 'Agent could not be added.',
     1040: "All fields are compulsory.",
     1050: 'You are already registered.',
     1060: 'Internal Problem Please Contact Admin.',

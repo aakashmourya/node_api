@@ -14,8 +14,7 @@ function getDetail(user_id) {
     mobile,
     address,
     gst,
-    reg_type FROM users LEFT JOIN user_details on users.user_id=user_details.user_id where users.user_id=?`;//`select ${columns} from ${tableName} where ${condition}`;
-    //console.log('sql',sql);
+    reg_type FROM users LEFT JOIN user_details on users.user_id=user_details.user_id where users.user_id=?`;//`select ${columns}
     return dbHelper.executeQuery(sql,[user_id]);
 }
 module.exports = {getDetail};

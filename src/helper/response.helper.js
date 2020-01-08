@@ -10,7 +10,14 @@ function createError(error, code = 500, onlyObj = false) {
     return { error: obj }
 }
 
+function errorHandler(res,error, code = 500, onlyObj = false) {
+  // var fun= function (error) {
+        res.status(code).json(createError(error,code,onlyObj));
+    // }
+   // return fun;
+}
+
 module.exports =
 {
-    createResponse, createError
+    createResponse, createError,errorHandler
 };
