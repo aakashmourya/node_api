@@ -5,10 +5,24 @@ const dbconfig = {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE
 }
+function getConnection() {
+    var promise = new Promise(function (resolve, reject) {
 
+        let con = mysql.createConnection(dbconfig);
+
+        con.connect(function (err) {
+            if (err) {
+                reject(err);
+            }
+            resolve(con);
+
+        });
+    });
+    return promise;
+}
 function executeQuery(query, values = []) {
     var promise = new Promise(function (resolve, reject) {
-      
+
         let con = mysql.createConnection(dbconfig);
 
         con.connect(function (err) {
@@ -31,27 +45,42 @@ function executeQuery(query, values = []) {
     });
     return promise;
 }
+
 function select(tableName, condition = 1, parameter = [], columns = "*") {
     var sql = `select ${columns} from ${tableName} where ${condition}`;
     return executeQuery(sql, parameter);
 }
-// function insert(tableName,columns = '*', parameter = []) {
-//     var sql = `INSERT INTO ${tableName} ${columns == '*' ? "" : "(" + columns + ")"} VALUES ?`;
-//     console.log(sql);
-//     return executeQuery(sql, [[parameter]]);
-// }
-function insert(tableName,data) {
-    var sql = `INSERT INTO ${tableName} ${"(" + Object.keys(data).join(',') + ")"} VALUES ?`;
-    console.log(sql);
-    return executeQuery(sql, [[Object.keys(data).map((key)=>data[key])]]);
+
+function generateInsertSql(tableName, data) {
+    return `INSERT INTO ${tableName} ${"(" + Object.keys(data).join(',') + ")"} VALUES ?`;
+
 }
+
+function convertInsertData(data) {
+    return [[Object.keys(data).map((key) => data[key])]];
+
+}
+function generateUpdateSql(tableName, data, condition = "1") {
+    return `UPDATE ${tableName} SET  ${Object.keys(data).map(key => `${key}=?`).join(',')} WHERE ${condition}`;
+
+}
+function convertUpdateData(data,condition=[]) {
+    return [...Object.keys(data).map((key) => data[key]),...condition];
+
+}
+
+function insert(tableName, data) {
+    var sql = generateInsertSql(tableName, data);
+    return executeQuery(sql, convertInsertData(data));
+}
+
 function deleteRow(tableName, condition = 1, parameter = []) {
     var sql = `delete from ${tableName} where ${condition}`;
     return executeQuery(sql, parameter);
 }
 
 async function getNewId(tableName, prefix = "", pad_length = 4) {
-   
+
     var sql = `SELECT AUTO_INCREMENT as no
     FROM information_schema.TABLES
     WHERE TABLE_SCHEMA = "${dbconfig.database}"
@@ -60,9 +89,9 @@ async function getNewId(tableName, prefix = "", pad_length = 4) {
         return 0;
     });
     if (result !== undefined && result.length) {
-        let no=result[0]['no'].toString().padStart(pad_length, '0');
-        let date=new Date();
-        let formateDate=`${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}`;
+        let no = result[0]['no'].toString().padStart(pad_length, '0');
+        let date = new Date();
+        let formateDate = `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}`;
         return `${prefix.toUpperCase()}${formateDate}${no}`;
     }
     return 0;
@@ -75,6 +104,11 @@ module.exports =
     select,
     insert,
     deleteRow,
-    getNewId
+    getNewId,
+    getConnection,
+    generateInsertSql,
+    generateUpdateSql,
+    convertInsertData,
+    convertUpdateData
 
 };
