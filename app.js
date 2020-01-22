@@ -6,9 +6,10 @@ var logger = require('morgan');
 var resp = require("./src/helper/response.helper")
 //var indexRouter = require('./routes/index');
 var usersRouter = require('./src/routes/users');
+var testsRouter = require('./src/routes/tests');
 
 var app = express();
-
+const BASE_URL="/api/v1";
 // view engine setup
 //app.set('views', path.join(__dirname, 'views'));
 //app.set('view engine', 'jade');
@@ -30,7 +31,8 @@ app.use(function(req, res, next) {
  });
 
 //app.use('/', indexRouter);
-app.use('/api/v1/', usersRouter);
+app.use(`${BASE_URL}/user`, usersRouter);
+app.use(`${BASE_URL}/test`, testsRouter);
 
 
 
