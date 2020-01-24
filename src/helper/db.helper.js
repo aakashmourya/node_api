@@ -74,6 +74,7 @@ function insert(tableName, data) {
     return executeQuery(sql, convertInsertData(data));
 }
 
+
 function deleteRow(tableName, condition = 1, parameter = []) {
     var sql = `delete from ${tableName} where ${condition}`;
     return executeQuery(sql, parameter);
@@ -96,6 +97,23 @@ async function getNewId(tableName, prefix = "", pad_length = 4) {
     }
     return 0;
 }
+async function getNewRefCode(tableName, prefix = "", pad_length = 4) {
+
+    var sql = `SELECT AUTO_INCREMENT as no
+    FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA = "${dbconfig.database}"
+    AND TABLE_NAME = "${tableName}"`;//`SELECT max(id) as maxid  FROM ${tableName}`;
+    let result = await executeQuery(sql).catch(error => {
+        return 0;
+    });
+    if (result !== undefined && result.length) {
+        let no = result[0]['no'].toString().padStart(pad_length, '0');
+        let date = new Date();
+        let formateDate = `${date.getFullYear()}`;
+        return `${prefix.toUpperCase()}${formateDate}${no}`;
+    }
+    return 0;
+}
 
 
 module.exports =
@@ -105,6 +123,7 @@ module.exports =
     insert,
     deleteRow,
     getNewId,
+    getNewRefCode,
     getConnection,
     generateInsertSql,
     generateUpdateSql,

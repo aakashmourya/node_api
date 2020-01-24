@@ -26,7 +26,7 @@ exports.login = (req, res, next) => {
     res.status(400).json(resp.createResponse(resp.createError(result.error, 400, true), false));
   } else {
     let { email, password } = req.body;
-    dbHelper.select('users', "email=? and password=?", [email, password]).then(function (result) {
+    dbHelper.select('users', "email=? and password=? and status=?", [email, password,"A"]).then(function (result) {
 
       if (result.length) {
 
@@ -136,8 +136,9 @@ exports.addUser = async (req, res, next) => {
     }
 
     let new_user_id = await dbHelper.getNewId("users");
+    let ref_code = await dbHelper.getNewRefCode("users","R");
 
-    let insert_data = { user_id: new_user_id, parent_id: req.userData.user_id, email, password, status: 'A' }
+    let insert_data = { user_id: new_user_id, parent_id: req.userData.user_id, email, password, ref_code,status: 'A' }
     let user_detail = { user_id: new_user_id, name, company_name, mobile, address, gst, reg_type };
     result = await UserModel.addUser(insert_data, user_detail).catch(error => resp.errorHandler(res, error, 500))
 
@@ -233,5 +234,71 @@ exports.getAllUsers = (req, res, next) => {
       res.status(500).json(resp.createError(error, 500));
     });
   }
+}
+
+exports.addContract = async (req, res, next) => {
+ // console.log(req.body,req.file);
+
+ let { user_id, ref_code, ref_percentage, from_date, to_date, tests } = req.body;
+
+let test_data=JSON.parse(tests);
+
+console.log(req.file);
+console.log(test_data);
+let contract_no = await dbHelper.getNewId("user_contracts");
+
+     let user_contract = {contract_no,document:req.file.filename, user_id,ref_by:ref_code,ref_percentage, from_date, to_date }
+console.log(user_contract);
+let result=await dbHelper.insert("user_contracts",user_contract);
+console.log(result);
+  res.status(200).json(resp.createResponse(ErrCodes.getMessage(2003), false));
+  // const schema = Joi.object({
+  //   email: Joi.string()
+  //     .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required(),
+  //   password: Joi.string()
+  //     .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required().error(new Error('Enter valid password.')),
+  //   name: Joi.string().required(),
+  //   company_name: Joi.string().required(),
+  //   mobile: Joi.string().required(),
+  //   address: Joi.string().required(),
+  //   gst: Joi.string().required(),
+  //   reg_type: Joi.string().required(),
+  // })
+
+  // let result = schema.validate(req.body);
+
+  // if (result.error) {
+  //   res.status(400).json(resp.createResponse(resp.createError(result.error, 400, true), false));
+  // } else {
+  //   let { email, password, reg_type, company_name, gst, name, mobile, address } = req.body;
+
+  //   let result = await dbHelper.select('users', "email=?", [email]).catch(error => resp.errorHandler(res, error, 500))
+  //   if (result !== undefined && result.length) {
+  //     res.status(200).json(resp.createResponse(ErrCodes.getMessage(2001), false));
+  //     return;
+  //   }
+
+  //   if (reg_type == constant.REG_TYPE_COMPANY) {
+  //     let result = await dbHelper.select('user_details', "company_name=?", [company_name]).catch(error => resp.errorHandler(res, error, 500))
+  //     if (result !== undefined && result.length) {
+  //       res.status(200).json(resp.createResponse(ErrCodes.getMessage(2002), false));
+  //       return;
+  //     }
+  //   } else {
+  //     company_name = "";
+  //     gst = "";
+  //   }
+
+  //   let new_user_id = await dbHelper.getNewId("users");
+
+  //   let insert_data = { user_id: new_user_id, parent_id: req.userData.user_id, email, password, status: 'A' }
+  //   let user_detail = { user_id: new_user_id, name, company_name, mobile, address, gst, reg_type };
+  //   result = await UserModel.addUser(insert_data, user_detail).catch(error => resp.errorHandler(res, error, 500))
+
+  //   if (result !== undefined) {
+  //     res.status(200).json(resp.createResponse(ErrCodes.getMessage(2003), true));
+  //     return;
+  //   }
+ // }
 }
 
