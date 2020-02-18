@@ -26,7 +26,7 @@ exports.login = (req, res, next) => {
     res.status(400).json(resp.createResponse(resp.createError(result.error, 400, true), false));
   } else {
     let { email, password } = req.body;
-    dbHelper.select('users', "email=? and password=? and status=?", [email, password,"A"]).then(function (result) {
+    dbHelper.select('users', "email=? and password=? and status=?", [email, password, "A"]).then(function (result) {
 
       if (result.length) {
 
@@ -34,8 +34,9 @@ exports.login = (req, res, next) => {
           if (result.length) {
             let tokenPayload = {
               user_id: result[0].user_id,
-              parent_id: result[0].parent_id,
-              email: result[0].email
+              added_by: result[0].added_by,
+              email: result[0].email,
+              ref_code: result[0].ref_code
             }
 
             const token = jwt.sign(tokenPayload, process.env.JWT_KEY, { expiresIn: "1h" })
@@ -108,6 +109,8 @@ exports.addUser = async (req, res, next) => {
     mobile: Joi.string().required(),
     address: Joi.string().required(),
     gst: Joi.string().required(),
+    referred_by: Joi.string(),
+    percentage: Joi.string(),
     reg_type: Joi.string().required(),
   })
 
@@ -116,8 +119,8 @@ exports.addUser = async (req, res, next) => {
   if (result.error) {
     res.status(400).json(resp.createResponse(resp.createError(result.error, 400, true), false));
   } else {
-    let { email, password, reg_type, company_name, gst, name, mobile, address } = req.body;
-
+    let { email, password, reg_type, company_name, gst, name, mobile, address,referred_by,percentage } = req.body;
+//console.log(referred_by,percentage);
     let result = await dbHelper.select('users', "email=?", [email]).catch(error => resp.errorHandler(res, error, 500))
     if (result !== undefined && result.length) {
       res.status(200).json(resp.createResponse(ErrCodes.getMessage(2001), false));
@@ -136,11 +139,19 @@ exports.addUser = async (req, res, next) => {
     }
 
     let new_user_id = await dbHelper.getNewId("users");
-    let ref_code = await dbHelper.getNewRefCode("users","R");
+    let ref_code = await dbHelper.getNewRefCode("users", "R");
 
-    let insert_data = { user_id: new_user_id, parent_id: req.userData.user_id, email, password, ref_code,status: 'A' }
+    let user_data = { user_id: new_user_id, added_by: req.userData.user_id, email, password, ref_code, status: 'A' }
     let user_detail = { user_id: new_user_id, name, company_name, mobile, address, gst, reg_type };
-    result = await UserModel.addUser(insert_data, user_detail).catch(error => resp.errorHandler(res, error, 500))
+    let user_reference_data =null;
+
+    if(referred_by && percentage){
+      user_reference_data={user_id: new_user_id,ref_code:referred_by,percentage}
+    }else{
+      user_reference_data={user_id: new_user_id,ref_code:req.userData.ref_code,percentage:'00'}
+    }
+    
+    result = await UserModel.addUser(user_data, user_detail,user_reference_data).catch(error => resp.errorHandler(res, error, 500))
 
     if (result !== undefined) {
       res.status(200).json(resp.createResponse(ErrCodes.getMessage(2003), true));
@@ -169,12 +180,12 @@ exports.editUser = async (req, res, next) => {
   if (result.error) {
     res.status(400).json(resp.createResponse(resp.createError(result.error, 400, true), false));
   } else {
-    var { email, password, reg_type, company_name, gst, name, mobile, address,user_id } = req.body;
+    var { email, password, reg_type, company_name, gst, name, mobile, address, user_id } = req.body;
 
     let old_user_detail = await UserModel.getDetail(req.body.user_id).catch(error => resp.errorHandler(res, error, 500));
     //console.log(user_detail[0].email);
     if (old_user_detail !== undefined && old_user_detail.length) {
-      
+
       old_user_detail = old_user_detail[0];
 
       if (email != old_user_detail.email) {
@@ -198,10 +209,10 @@ exports.editUser = async (req, res, next) => {
         gst = "";
       }
 
-      let insert_data = {  email, password}
+      let insert_data = { email, password }
       let user_detail = { name, company_name, mobile, address, gst, reg_type };
       //console.log(insert_data,user_detail)
-      let result = await UserModel.editUser(insert_data, user_detail,user_id).catch(error => resp.errorHandler(res, error, 500))
+      let result = await UserModel.editUser(insert_data, user_detail, user_id).catch(error => resp.errorHandler(res, error, 500))
 
       if (result !== undefined) {
         res.status(200).json(resp.createResponse(ErrCodes.getMessage(2005), true));
@@ -237,68 +248,40 @@ exports.getAllUsers = (req, res, next) => {
 }
 
 exports.addContract = async (req, res, next) => {
- // console.log(req.body,req.file);
+  console.log(req.body, req.file);
+  const schema = Joi.object({
+    user_id: Joi.string().required(),
+    ref_code: Joi.string().required(),
+    ref_percentage: Joi.string().required(),
+    from_date: Joi.string().required(),
+    to_date: Joi.string().required(),
+    tests: Joi.string().required(),
+  })
 
- let { user_id, ref_code, ref_percentage, from_date, to_date, tests } = req.body;
+  let result = schema.validate(req.body);
 
-let test_data=JSON.parse(tests);
+  if (result.error) {
+    res.status(400).json(resp.createResponse(resp.createError(result.error, 400, true), false));
+  } else {
+    let { user_id, ref_code, ref_percentage, from_date, to_date, tests } = req.body;
 
-console.log(req.file);
-console.log(test_data);
-let contract_no = await dbHelper.getNewId("user_contracts");
+    let test_data = JSON.parse(tests);
 
-     let user_contract = {contract_no,document:req.file.filename, user_id,ref_by:ref_code,ref_percentage, from_date, to_date }
-console.log(user_contract);
-let result=await dbHelper.insert("user_contracts",user_contract);
-console.log(result);
-  res.status(200).json(resp.createResponse(ErrCodes.getMessage(2003), false));
-  // const schema = Joi.object({
-  //   email: Joi.string()
-  //     .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required(),
-  //   password: Joi.string()
-  //     .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required().error(new Error('Enter valid password.')),
-  //   name: Joi.string().required(),
-  //   company_name: Joi.string().required(),
-  //   mobile: Joi.string().required(),
-  //   address: Joi.string().required(),
-  //   gst: Joi.string().required(),
-  //   reg_type: Joi.string().required(),
-  // })
+    //console.log(test_data);
 
-  // let result = schema.validate(req.body);
+    let contract_no = await dbHelper.getNewId("user_contracts", "C-");
 
-  // if (result.error) {
-  //   res.status(400).json(resp.createResponse(resp.createError(result.error, 400, true), false));
-  // } else {
-  //   let { email, password, reg_type, company_name, gst, name, mobile, address } = req.body;
+    let user_contract = { contract_no, document: req.file.filename, user_id, ref_by: ref_code, ref_percentage, from_date, to_date }
+    //console.log(user_contract);
+    let user_contract_tests = test_data.map(item => { return { contract_no, test_id: item.test_id, package_id: item.selected_package, percentage: item.percentage, mrp: item.test_mrp }; });//Object.keys(item).map((key) => item[key]));
 
-  //   let result = await dbHelper.select('users', "email=?", [email]).catch(error => resp.errorHandler(res, error, 500))
-  //   if (result !== undefined && result.length) {
-  //     res.status(200).json(resp.createResponse(ErrCodes.getMessage(2001), false));
-  //     return;
-  //   }
+    let result = await UserModel.addContract(user_contract, user_contract_tests).catch(error => resp.errorHandler(res, error, 500))
 
-  //   if (reg_type == constant.REG_TYPE_COMPANY) {
-  //     let result = await dbHelper.select('user_details', "company_name=?", [company_name]).catch(error => resp.errorHandler(res, error, 500))
-  //     if (result !== undefined && result.length) {
-  //       res.status(200).json(resp.createResponse(ErrCodes.getMessage(2002), false));
-  //       return;
-  //     }
-  //   } else {
-  //     company_name = "";
-  //     gst = "";
-  //   }
+    if (result !== undefined) {
+      res.status(200).json(resp.createResponse(ErrCodes.getMessage(2006), true));
+      return;
+    }
 
-  //   let new_user_id = await dbHelper.getNewId("users");
-
-  //   let insert_data = { user_id: new_user_id, parent_id: req.userData.user_id, email, password, status: 'A' }
-  //   let user_detail = { user_id: new_user_id, name, company_name, mobile, address, gst, reg_type };
-  //   result = await UserModel.addUser(insert_data, user_detail).catch(error => resp.errorHandler(res, error, 500))
-
-  //   if (result !== undefined) {
-  //     res.status(200).json(resp.createResponse(ErrCodes.getMessage(2003), true));
-  //     return;
-  //   }
- // }
+  }
 }
 
