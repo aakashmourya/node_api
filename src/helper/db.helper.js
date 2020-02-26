@@ -1,4 +1,5 @@
 var mysql = require('mysql');
+var moment = require('moment');
 const dbconfig = {
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -108,7 +109,7 @@ async function getNewId(tableName, prefix = "", pad_length = 4) {
     return 0;
 }
 
-async function getNewRefCode(tableName, prefix = "", pad_length = 4) {
+async function getNewRefCode(tableName, prefix = "", pad_length = 0) {
 
     var sql = `SELECT AUTO_INCREMENT as no
     FROM information_schema.TABLES
@@ -119,8 +120,9 @@ async function getNewRefCode(tableName, prefix = "", pad_length = 4) {
     });
     if (result !== undefined && result.length) {
         let no = result[0]['no'].toString().padStart(pad_length, '0');
-        let date = new Date();
-        let formateDate = `${date.getFullYear()}`;
+       // let date = new Date();
+        //let formateDate = `${date.getYear()}`;
+        let formateDate=moment().format('YYss');
         return `${prefix.toUpperCase()}${formateDate}${no}`;
     }
     return 0;

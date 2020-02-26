@@ -11,8 +11,13 @@ const storage=multer.diskStorage({
     filename:function(req,file,cb){
         
         let date =new Date();
-
-        cb(null,`${date.toISOString().replace(/:/g,"_")}${file.originalname}`);
+       //console.log(file);
+       let extention="";
+       let dotIndex=file.originalname.lastIndexOf('.');
+       if(dotIndex!=-1){
+        extention=file.originalname.substring(dotIndex);
+       }
+        cb(null,`${date.toISOString().replace(/:/g,"_")}${extention}`);
     }
 })
 let upload = multer({storage:storage});
@@ -22,8 +27,10 @@ router.post('/get_user_types',checkAuth,UserController.getUserTypes);
 router.post('/add_user',checkAuth,UserController.addUser);
 router.post('/edit_user',checkAuth,UserController.editUser);
 router.post('/get_all_users',checkAuth,UserController.getAllUsers);
+router.post('/check_reference_code',checkAuth,UserController.checkReferenceCode);
 
 router.post('/add_contract',checkAuth,upload.single('doc_file'),UserController.addContract);
+router.post('/get_contract_details',checkAuth,UserController.getContractDetails);
 
 module.exports = router;
 

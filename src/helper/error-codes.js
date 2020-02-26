@@ -13,5 +13,7 @@ const CODE_RES =
     2004: "User not find.",
     2005: "Agent updated successfully.",
     2006: 'Contract saved successfully.',
-  
+    2007: 'Reference code does not exist.',
+    2008: 'Contract already exists.',
+
 }
